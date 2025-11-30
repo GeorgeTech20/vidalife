@@ -22,6 +22,7 @@ serve(async (req) => {
     const file = formData.get('file') as File;
     const patientId = formData.get('patientId') as string;
     const description = formData.get('description') as string;
+    const documentType = formData.get('documentType') as string || 'OTHER';
 
     if (!file) {
       return new Response(JSON.stringify({ error: 'No file provided' }), {
@@ -42,6 +43,7 @@ serve(async (req) => {
       fileType: file.type,
       fileSize: file.size,
       patientId,
+      documentType,
       description 
     });
 
@@ -49,6 +51,7 @@ serve(async (req) => {
     const backendFormData = new FormData();
     backendFormData.append('file', file);
     backendFormData.append('patientId', patientId);
+    backendFormData.append('documentType', documentType);
     if (description) {
       backendFormData.append('description', description);
     }

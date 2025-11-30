@@ -1,14 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Upload, FileText, Image, Trash2, Eye, Plus } from 'lucide-react';
+import { ArrowLeft, FileText, Image, Trash2, Eye, Plus, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MobileLayout from '@/components/MobileLayout';
 import BottomNav from '@/components/BottomNav';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useActivePatient } from '@/hooks/useActivePatient';
+import { api, DocumentType } from '@/lib/api';
 import {
   Dialog,
   DialogContent,
@@ -69,34 +68,37 @@ const MedicalLibrary = () => {
     }
   };
 
+  const getDocumentType = (fileType: string): DocumentType => {
+    if (fileType.includes('pdf')) return 'OTHER';
+    return 'MEDICAL_EXAM';
+  };
+
   const uploadToBackend = async (file: File, patientId: string, description?: string) => {
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('patientId', patientId);
-      if (description) {
-        formData.append('description', description);
-      }
-
-      const { data: { session } } = await supabase.auth.getSession();
+      const documentType = getDocumentType(file.type);
       
-      const response = await supabase.functions.invoke('document-upload', {
-        body: formData,
-      });
+      const result = await api.uploadDocument(
+        file,
+        patientId,
+        documentType,
+        description || `Archivo subido: ${file.name}`
+      );
 
-      if (response.error) {
-        console.error('Backend upload error:', response.error);
-        // Don't throw - backend processing is optional for now
+      console.log('Backend upload success:', result);
+      
+      if (result.processed) {
         toast({
-          title: 'Aviso',
-          description: 'El archivo se guardó localmente. El procesamiento del backend está pendiente.',
+          title: 'Documento procesado',
+          description: 'El archivo ha sido procesado para consultas con IA',
         });
-      } else {
-        console.log('Backend upload success:', response.data);
       }
     } catch (error) {
       console.error('Error uploading to backend:', error);
       // Don't throw - backend processing is optional for now
+      toast({
+        title: 'Aviso',
+        description: 'El archivo se guardó. El procesamiento IA está pendiente.',
+      });
     }
   };
 
