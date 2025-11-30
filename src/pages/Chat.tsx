@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Paperclip, X, FileText, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Send, Paperclip, X, FileText, Image as ImageIcon, HeartPulse } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MobileLayout from '@/components/MobileLayout';
 import BottomNav from '@/components/BottomNav';
@@ -10,7 +10,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivePatient } from '@/hooks/useActivePatient';
-import mamaAvatar from '@/assets/mama-avatar.png';
 
 const initialMessages: Message[] = [
   {
@@ -247,8 +246,8 @@ const Chat = () => {
           <ArrowLeft className="w-5 h-5 text-foreground" />
         </button>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl overflow-hidden bg-accent">
-            <img src={mamaAvatar} alt="Mama" className="w-full h-full object-cover" />
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+            <HeartPulse className="w-5 h-5 text-primary-foreground" />
           </div>
           <div>
             <h1 className="font-semibold text-foreground">Mamá</h1>
@@ -283,8 +282,8 @@ const Chat = () => {
             )}
           >
             {message.sender === 'mama' && (
-              <div className="w-8 h-8 rounded-lg overflow-hidden bg-accent flex-shrink-0 self-end">
-                <img src={mamaAvatar} alt="Mama" className="w-full h-full object-cover" />
+              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 self-end">
+                <HeartPulse className="w-4 h-4 text-primary-foreground" />
               </div>
             )}
             <div
@@ -310,8 +309,8 @@ const Chat = () => {
 
         {isTyping && (
           <div className="flex gap-3 justify-start">
-            <div className="w-8 h-8 rounded-lg overflow-hidden bg-accent flex-shrink-0 self-end">
-              <img src={mamaAvatar} alt="Mama" className="w-full h-full object-cover" />
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 self-end">
+              <HeartPulse className="w-4 h-4 text-primary-foreground" />
             </div>
             <div className="bg-card border border-border px-4 py-3 rounded-2xl rounded-bl-md">
               <div className="flex gap-1">
