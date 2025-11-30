@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivePatient } from '@/hooks/useActivePatient';
 import michiMedic from '@/assets/michi-medic.png';
+import michiWelcome from '@/assets/michi-welcome.png';
 
 const initialMessages: Message[] = [
   {
@@ -258,7 +259,7 @@ const Chat = () => {
           {/* Welcome Content */}
           <div className="flex-1 flex flex-col items-center justify-center px-6 pb-24">
             <img 
-              src={michiMedic} 
+              src={michiWelcome} 
               alt="Michi Medic" 
               className="w-32 h-32 object-contain mb-4"
             />
