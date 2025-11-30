@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Send, Paperclip, X, FileText, Image as ImageIcon, HeartPulse } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Send, Paperclip, X, FileText, Image as ImageIcon, Plus } from 'lucide-react';
 import MobileLayout from '@/components/MobileLayout';
 import BottomNav from '@/components/BottomNav';
 import { Input } from '@/components/ui/input';
@@ -10,11 +9,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActivePatient } from '@/hooks/useActivePatient';
+import michiMedic from '@/assets/michi-medic.png';
 
 const initialMessages: Message[] = [
   {
     id: '1',
-    content: '¡Hola! Soy Mamá, tu asistente de salud.\n\nEstoy aquí para ayudarte. Cuéntame, ¿qué síntomas estás experimentando hoy?',
+    content: '¡Hola! Soy Michi Medic, tu asistente de salud.\n\nEstoy aquí para ayudarte. Cuéntame, ¿qué síntomas estás experimentando hoy?',
     sender: 'mama',
     timestamp: new Date(),
   },
@@ -56,15 +56,15 @@ const defaultResponses = [
 ];
 
 const Chat = () => {
-  const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { activePatient } = useActivePatient();
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [conversationContext, setConversationContext] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [hasConversation, setHasConversation] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -75,6 +75,12 @@ const Chat = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const startNewConversation = () => {
+    setMessages(initialMessages);
+    setHasConversation(true);
+    setConversationContext([]);
+  };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -193,7 +199,7 @@ const Chat = () => {
 
         setIsTyping(true);
         setTimeout(() => {
-          const mamaMessage: Message = {
+          const michiMessage: Message = {
             id: (Date.now() + 2).toString(),
             content: userContext
               ? `¡Perfecto! He guardado tu archivo "${attachedFile.name}" en tu Historia Clínica Digital.\n\n¿Hay algo más en lo que pueda ayudarte?`
@@ -201,7 +207,7 @@ const Chat = () => {
             sender: 'mama',
             timestamp: new Date(),
           };
-          setMessages((prev) => [...prev, mamaMessage]);
+          setMessages((prev) => [...prev, michiMessage]);
           setIsTyping(false);
         }, 1000);
       }
@@ -222,54 +228,86 @@ const Chat = () => {
 
     setTimeout(() => {
       const response = generateResponse(currentInput);
-      const mamaMessage: Message = {
+      const michiMessage: Message = {
         id: (Date.now() + 1).toString(),
         content: response,
         sender: 'mama',
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, mamaMessage]);
+      setMessages((prev) => [...prev, michiMessage]);
       setIsTyping(false);
     }, 1500);
   };
 
-  const quickSymptoms = ['Dolor de cabeza', 'Fiebre', 'Tos', 'Cansancio'];
+  // Welcome screen when no conversation
+  if (!hasConversation) {
+    return (
+      <MobileLayout>
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <header className="flex items-center justify-between px-6 py-4">
+            <h1 className="text-2xl font-bold text-foreground">Chat</h1>
+            <button
+              onClick={startNewConversation}
+              className="w-8 h-8 rounded-full border border-primary flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </header>
+
+          {/* Welcome Content */}
+          <div className="flex-1 flex flex-col items-center justify-center px-6 pb-24">
+            <img 
+              src={michiMedic} 
+              alt="Michi Medic" 
+              className="w-40 h-40 object-contain mb-6"
+            />
+            <h2 className="text-xl font-semibold text-foreground mb-2">
+              ¡Bienvenido al Chat!
+            </h2>
+            <p className="text-muted-foreground text-center text-sm mb-8">
+              Inicia una nueva conversación con Michi Medic{'\n'}tocando el botón de abajo.
+            </p>
+            <button
+              onClick={startNewConversation}
+              className="flex items-center gap-2 px-6 py-3 border border-primary text-primary rounded-full font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Iniciar Nuevo Chat
+            </button>
+          </div>
+
+          <BottomNav />
+        </div>
+      </MobileLayout>
+    );
+  }
 
   return (
     <MobileLayout>
       {/* Header */}
-      <header className="flex items-center gap-4 px-5 py-4 bg-card border-b border-border">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 hover:bg-muted rounded-xl transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5 text-foreground" />
-        </button>
+      <header className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-            <HeartPulse className="w-5 h-5 text-primary-foreground" />
-          </div>
+          <img 
+            src={michiMedic} 
+            alt="Michi Medic" 
+            className="w-10 h-10 object-contain"
+          />
           <div>
-            <h1 className="font-semibold text-foreground">Mamá</h1>
+            <h1 className="font-semibold text-foreground">Michi Medic</h1>
             <p className="text-xs text-success">En línea</p>
           </div>
         </div>
+        <button
+          onClick={() => {
+            setHasConversation(false);
+            setMessages([]);
+          }}
+          className="w-8 h-8 rounded-full border border-primary flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+        </button>
       </header>
-
-      {/* Quick Symptoms */}
-      <div className="px-5 py-3 bg-background border-b border-border overflow-x-auto scrollbar-hide">
-        <div className="flex gap-2">
-          {quickSymptoms.map((symptom) => (
-            <button
-              key={symptom}
-              onClick={() => setInputValue(`Tengo ${symptom.toLowerCase()}`)}
-              className="px-4 py-2 bg-accent text-accent-foreground rounded-xl text-sm font-medium whitespace-nowrap hover:bg-accent/80 transition-colors"
-            >
-              {symptom}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-5 py-4 pb-40 space-y-4">
@@ -282,9 +320,11 @@ const Chat = () => {
             )}
           >
             {message.sender === 'mama' && (
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 self-end">
-                <HeartPulse className="w-4 h-4 text-primary-foreground" />
-              </div>
+              <img 
+                src={michiMedic} 
+                alt="Michi Medic" 
+                className="w-8 h-8 object-contain flex-shrink-0 self-end"
+              />
             )}
             <div
               className={cn(
@@ -309,9 +349,11 @@ const Chat = () => {
 
         {isTyping && (
           <div className="flex gap-3 justify-start">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 self-end">
-              <HeartPulse className="w-4 h-4 text-primary-foreground" />
-            </div>
+            <img 
+              src={michiMedic} 
+              alt="Michi Medic" 
+              className="w-8 h-8 object-contain flex-shrink-0 self-end"
+            />
             <div className="bg-card border border-border px-4 py-3 rounded-2xl rounded-bl-md">
               <div className="flex gap-1">
                 <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -364,7 +406,7 @@ const Chat = () => {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Describe tus síntomas..."
+            placeholder="Escribe tu mensaje..."
             className="flex-1 bg-card border-border rounded-xl py-6"
           />
           <button
