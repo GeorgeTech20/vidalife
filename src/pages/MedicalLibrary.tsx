@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useActivePatient } from '@/hooks/useActivePatient';
 import {
   Dialog,
   DialogContent,
@@ -34,17 +35,25 @@ const MedicalLibrary = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<MedicalFile | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const { activePatient } = useActivePatient();
 
   useEffect(() => {
     fetchFiles();
-  }, []);
+  }, [activePatient]);
 
   const fetchFiles = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('medical_files')
         .select('*')
         .order('created_at', { ascending: false });
+      
+      // Filter by active patient if available
+      if (activePatient?.id) {
+        query = query.eq('patient_id', activePatient.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setFiles(data || []);
@@ -57,6 +66,37 @@ const MedicalLibrary = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const uploadToBackend = async (file: File, patientId: string, description?: string) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('patientId', patientId);
+      if (description) {
+        formData.append('description', description);
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await supabase.functions.invoke('document-upload', {
+        body: formData,
+      });
+
+      if (response.error) {
+        console.error('Backend upload error:', response.error);
+        // Don't throw - backend processing is optional for now
+        toast({
+          title: 'Aviso',
+          description: 'El archivo se guardó localmente. El procesamiento del backend está pendiente.',
+        });
+      } else {
+        console.log('Backend upload success:', response.data);
+      }
+    } catch (error) {
+      console.error('Error uploading to backend:', error);
+      // Don't throw - backend processing is optional for now
     }
   };
 
@@ -85,14 +125,23 @@ const MedicalLibrary = () => {
       return;
     }
 
+    if (!activePatient?.id) {
+      toast({
+        title: 'Sin paciente activo',
+        description: 'Selecciona un paciente para subir archivos',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsUploading(true);
 
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `uploads/${fileName}`;
+      const filePath = `${activePatient.id}/${fileName}`;
 
-      // Upload to storage
+      // Upload to Supabase storage
       const { error: uploadError } = await supabase.storage
         .from('medical-files')
         .upload(filePath, file);
@@ -102,16 +151,20 @@ const MedicalLibrary = () => {
       // Get current user
       const { data: { user: currentUser } } = await supabase.auth.getUser();
 
-      // Save file metadata
+      // Save file metadata to database
       const { error: dbError } = await supabase.from('medical_files').insert({
         file_name: file.name,
         file_path: filePath,
         file_type: file.type,
         file_size: file.size,
         user_id: currentUser?.id,
+        patient_id: activePatient.id,
       });
 
       if (dbError) throw dbError;
+
+      // Upload to backend for RAG processing (async, don't block)
+      uploadToBackend(file, activePatient.id);
 
       toast({
         title: 'Archivo subido',
